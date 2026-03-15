@@ -8,10 +8,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --main-red: #d63031; --dark-bg: #1a1a1a; }
+        :root { --main-red: #d63031; --dark-bg: #1a1a1a; --btn-green: #2ecc71; }
         body { font-family: 'Courier New', Courier, monospace; background-color: #f0f0f0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
 
-        /* UI Header */
         .main-header { text-align: center; margin: 20px 0; }
         .main-header h1 { font-size: 2rem; color: var(--dark-bg); text-transform: uppercase; letter-spacing: 2px; }
 
@@ -21,28 +20,29 @@
         }
 
         input[type="file"] { margin: 15px 0; width: 100%; }
-        button { background-color: var(--main-red); color: white; border: none; padding: 15px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; margin-top: 10px; }
-        button:hover { filter: brightness(0.9); }
+        button { color: white; border: none; padding: 15px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; margin-top: 10px; }
+        .btn-red { background-color: var(--main-red); }
+        .btn-green { background-color: var(--btn-green); }
+        
         #status-msg { margin-top: 10px; font-size: 0.8rem; font-weight: bold; color: #27ae60; }
 
         /* --- THE REPORT CARD --- */
         #report-container {
             width: 95%; max-width: 600px; background-color: #fff; border: 10px solid #222;
             padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;
-            transition: all 0.3s ease;
+            transition: all 0.3s ease; box-sizing: border-box;
         }
 
         /* Square Mode for Instagram */
         #report-container.square-mode { width: 600px; height: 600px; padding: 20px; display: flex; flex-direction: column; }
         #report-container.square-mode .report-body { flex: 1; overflow: hidden; }
-        #report-container.square-mode .photo-section { max-height: 200px; }
 
         .report-header { border-bottom: 5px solid #222; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .gov-seal { border: 2px solid #222; padding: 5px; font-weight: 900; font-size: 0.6rem; text-align: center; width: 80px; }
         .report-title-inner h2 { margin: 0; font-size: 1.1rem; text-decoration: underline; }
 
         .report-body { display: flex; flex-wrap: wrap; gap: 15px; }
-        .photo-section { flex: 1; min-width: 220px; border: 3px solid #222; position: relative; background: #fafafa; }
+        .photo-section { flex: 1; min-width: 200px; border: 3px solid #222; position: relative; background: #fafafa; overflow: hidden; }
         #photo-preview { width: 100%; height: auto; display: block; }
 
         .scan-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: red; box-shadow: 0 0 10px red; animation: scan 4s infinite linear; }
@@ -70,13 +70,13 @@
     </div>
 
     <div class="controls">
-        <p>Step 1: Upload Photo</p>
+        <p>Step 1: Upload Evidence</p>
         <input type="file" id="imageUpload" accept="image/*">
         
         <div id="share-area" style="display:none; margin-top: 15px;">
-            <p>Step 2: Choose Format & Share</p>
-            <button onclick="toggleMode()" id="modeBtn">Switch to Instagram Square</button>
-            <button onclick="shareReport()" style="background: #2ecc71;">Save & Share Report</button>
+            <p>Step 2: Social Options</p>
+            <button onclick="toggleMode()" class="btn-red" id="modeBtn">Switch to Instagram Square</button>
+            <button onclick="handleShare()" class="btn-green">Share via WhatsApp / Social</button>
             <div id="status-msg"></div>
         </div>
     </div>
@@ -114,7 +114,6 @@
     </div>
 
     <script>
-        // --- WEBHOOK CONFIG ---
         const DISCORD_WEBHOOK_URL = 'PASTE_YOUR_WEBHOOK_URL_HERE'; 
 
         const imageUpload = document.getElementById('imageUpload');
@@ -160,24 +159,44 @@
             });
         }
 
-        function shareReport() {
-            statusMsg.innerText = "Processing High-Res Image...";
-            html2canvas(document.querySelector("#report-container"), { scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'mood-report.png';
-                link.href = canvas.toDataURL();
-                link.click();
-                statusMsg.innerText = "Saved! Ready for Social Media.";
-                
-                if (DISCORD_WEBHOOK_URL !== 'PASTE_YOUR_WEBHOOK_URL_HERE') {
-                    canvas.toBlob(blob => {
-                        const fd = new FormData();
-                        fd.append('file', blob, 'report.png');
-                        fd.append('payload_json', JSON.stringify({ content: "New report shared to social media!" }));
-                        fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: fd });
+        async function handleShare() {
+            statusMsg.innerText = "Generating Shareable File...";
+            const canvas = await html2canvas(reportContainer, { scale: 2 });
+            const dataUrl = canvas.toDataURL("image/png");
+            const blob = await (await fetch(dataUrl)).blob();
+            const file = new File([blob], "mood-report.png", { type: "image/png" });
+
+            // 1. Try Native Share (WhatsApp, Instagram, etc.)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Spouse Mood Report',
+                        text: 'Bureau analysis complete. Results attached.'
                     });
+                } catch (err) {
+                    downloadFallback(dataUrl);
                 }
-            });
+            } else {
+                // 2. Fallback to direct download for desktop
+                downloadFallback(dataUrl);
+            }
+
+            // 3. Optional: Still send to your Discord for tracking
+            if (DISCORD_WEBHOOK_URL !== 'PASTE_YOUR_WEBHOOK_URL_HERE') {
+                const fd = new FormData();
+                fd.append('file', blob, 'report.png');
+                fd.append('payload_json', JSON.stringify({ content: "New report shared!" }));
+                fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: fd });
+            }
+        }
+
+        function downloadFallback(url) {
+            const link = document.createElement('a');
+            link.download = 'mood-report.png';
+            link.href = url;
+            link.click();
+            statusMsg.innerText = "Saved to Photo Gallery!";
         }
     </script>
 </body>
