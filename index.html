@@ -8,198 +8,59 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        /* --- CORE UI --- */
-        body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
+        :root { --main-red: #d63031; --dark-bg: #1a1a1a; }
+        body { font-family: 'Courier New', Courier, monospace; background-color: #f0f0f0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
 
-        .main-header {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .main-header h1 {
-            font-size: 2.2rem;
-            color: #1a1a1a;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
+        /* UI Header */
+        .main-header { text-align: center; margin: 20px 0; }
+        .main-header h1 { font-size: 2rem; color: var(--dark-bg); text-transform: uppercase; letter-spacing: 2px; }
 
         .controls {
-            text-align: center;
-            margin-bottom: 30px;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 450px;
-            border: 1px solid #ddd;
+            text-align: center; margin-bottom: 25px; background: #fff; padding: 20px; 
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 450px; border: 1px solid #ddd;
         }
 
-        input[type="file"] {
-            margin: 15px 0;
-            width: 100%;
-        }
+        input[type="file"] { margin: 15px 0; width: 100%; }
+        button { background-color: var(--main-red); color: white; border: none; padding: 15px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; margin-top: 10px; }
+        button:hover { filter: brightness(0.9); }
+        #status-msg { margin-top: 10px; font-size: 0.8rem; font-weight: bold; color: #27ae60; }
 
-        button {
-            background-color: #d63031;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            text-transform: uppercase;
-            width: 100%;
-            transition: background 0.2s;
-        }
-
-        button:hover { background-color: #ae2021; }
-
-        #status-msg {
-            margin-top: 10px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: #27ae60;
-        }
-
-        /* --- THE REPORT (OPTIMIZED FOR VISIBILITY) --- */
+        /* --- THE REPORT CARD --- */
         #report-container {
-            width: 95%;
-            max-width: 650px;
-            background-color: #fff;
-            border: 8px solid #222;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            position: relative;
-            margin-bottom: 50px;
+            width: 95%; max-width: 600px; background-color: #fff; border: 10px solid #222;
+            padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;
+            transition: all 0.3s ease;
         }
 
-        .report-header {
-            border-bottom: 4px solid #222;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* Square Mode for Instagram */
+        #report-container.square-mode { width: 600px; height: 600px; padding: 20px; display: flex; flex-direction: column; }
+        #report-container.square-mode .report-body { flex: 1; overflow: hidden; }
+        #report-container.square-mode .photo-section { max-height: 200px; }
 
-        .gov-seal {
-            border: 2px solid #222;
-            padding: 5px;
-            font-weight: 900;
-            font-size: 0.7rem;
-            text-align: center;
-            width: 90px;
-        }
+        .report-header { border-bottom: 5px solid #222; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .gov-seal { border: 2px solid #222; padding: 5px; font-weight: 900; font-size: 0.6rem; text-align: center; width: 80px; }
+        .report-title-inner h2 { margin: 0; font-size: 1.1rem; text-decoration: underline; }
 
-        .report-title-inner { text-align: right; }
-        .report-title-inner h2 { margin: 0; font-size: 1.1rem; }
-        .report-title-inner p { margin: 0; font-size: 0.7rem; color: #666; }
+        .report-body { display: flex; flex-wrap: wrap; gap: 15px; }
+        .photo-section { flex: 1; min-width: 220px; border: 3px solid #222; position: relative; background: #fafafa; }
+        #photo-preview { width: 100%; height: auto; display: block; }
 
-        .report-body {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
+        .scan-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: red; box-shadow: 0 0 10px red; animation: scan 4s infinite linear; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        .photo-section {
-            flex: 1;
-            min-width: 250px;
-            border: 2px solid #222;
-            position: relative;
-            background: #fafafa;
-            max-height: 400px;
-            overflow: hidden;
-        }
+        .data-section { flex: 1.2; min-width: 230px; }
+        .data-title { font-size: 0.8rem; font-weight: bold; border-bottom: 2px solid #222; margin-bottom: 10px; }
 
-        #photo-preview {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
+        .mood-row { margin-bottom: 8px; }
+        .mood-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; }
+        .progress-bar { height: 10px; background: #eee; border: 1px solid #333; }
+        .progress-fill { height: 100%; background: #222; width: 0%; transition: width 1s ease-in-out; }
 
-        .scan-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 3px;
-            background: #ff0000;
-            box-shadow: 0 0 10px #ff0000;
-            animation: scan 4s infinite linear;
-        }
+        .official-stamp { position: absolute; bottom: 100px; right: 20px; color: rgba(192, 57, 43, 0.7); border: 4px solid rgba(192, 57, 43, 0.7); padding: 5px 15px; font-size: 1.2rem; font-weight: 900; transform: rotate(-15deg); text-transform: uppercase; pointer-events: none; }
 
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-
-        .data-section {
-            flex: 1.2;
-            min-width: 250px;
-        }
-
-        .data-title {
-            font-size: 0.9rem;
-            font-weight: bold;
-            border-bottom: 2px solid #222;
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-        }
-
-        .mood-row { margin-bottom: 12px; }
-
-        .mood-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 3px;
-        }
-
-        .progress-bar {
-            height: 10px;
-            background: #eee;
-            border: 1px solid #333;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #222;
-            width: 0%;
-            transition: width 1.2s ease-in-out;
-        }
-
-        .official-stamp {
-            position: absolute;
-            bottom: 40px;
-            right: 20px;
-            color: rgba(192, 57, 43, 0.7);
-            border: 4px solid rgba(192, 57, 43, 0.7);
-            padding: 8px 15px;
-            font-size: 1.2rem;
-            font-weight: 900;
-            transform: rotate(-15deg);
-            text-transform: uppercase;
-            pointer-events: none;
-        }
-
-        .footer-note {
-            margin-top: 30px;
-            font-size: 0.65rem;
-            color: #888;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-            text-align: center;
-        }
+        .footer-note { margin-top: 25px; border-top: 2px solid #222; padding-top: 10px; text-align: center; }
+        .portal-link { color: var(--main-red); font-size: 0.8rem; font-weight: bold; text-decoration: none; display: block; }
+        .signature { font-family: 'Brush Script MT', cursive; font-size: 1.4rem; border-bottom: 1px solid #222; display: inline-block; width: 150px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -209,11 +70,13 @@
     </div>
 
     <div class="controls">
-        <p>1. Select Subject Photo</p>
+        <p>Step 1: Upload Photo</p>
         <input type="file" id="imageUpload" accept="image/*">
+        
         <div id="share-area" style="display:none; margin-top: 15px;">
-            <p>2. Analysis Complete</p>
-            <button onclick="shareReport()">Save & Share Analysis</button>
+            <p>Step 2: Choose Format & Share</p>
+            <button onclick="toggleMode()" id="modeBtn">Switch to Instagram Square</button>
+            <button onclick="shareReport()" style="background: #2ecc71;">Save & Share Report</button>
             <div id="status-msg"></div>
         </div>
     </div>
@@ -223,18 +86,18 @@
             <div class="gov-seal">DEPT. OF<br>HARMONY</div>
             <div class="report-title-inner">
                 <h2>BIOMETRIC DATA SHEET</h2>
-                <p id="current-date"></p>
+                <p id="current-date" style="font-size: 0.6rem; margin:0;"></p>
             </div>
         </div>
 
         <div class="report-body">
             <div class="photo-section">
-                <img id="photo-preview" src="" alt="Subject Photo">
+                <img id="photo-preview" src="" alt="Subject">
                 <div class="scan-overlay"></div>
             </div>
             
             <div class="data-section">
-                <div class="data-title">MOOD PROBABILITY INDEX</div>
+                <div class="data-title">MOOD INDEX</div>
                 <div id="mood-list"></div>
             </div>
         </div>
@@ -242,12 +105,16 @@
         <div class="official-stamp">CERTIFIED</div>
 
         <div class="footer-note">
-            BIOMETRIC SCAN ID: SMAB-99-ALPHA. THIS REPORT IS FOR INFORMATIONAL PURPOSES ONLY.
+            <div style="display: flex; justify-content: space-around; align-items: flex-end; margin-bottom: 10px;">
+                <div style="text-align: left; font-size: 0.6rem;">OFFICER SIGNATURE:<br><span class="signature">AI-Agent-3F</span></div>
+                <div style="font-size: 0.6rem;">STAMP ID: <br><strong>#SMAB-442</strong></div>
+            </div>
+            <span class="portal-link" id="site-url"></span>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- WEBHOOK CONFIG ---
         const DISCORD_WEBHOOK_URL = 'PASTE_YOUR_WEBHOOK_URL_HERE'; 
 
         const imageUpload = document.getElementById('imageUpload');
@@ -255,6 +122,8 @@
         const shareArea = document.getElementById('share-area');
         const photoPreview = document.getElementById('photo-preview');
         const statusMsg = document.getElementById('status-msg');
+        
+        document.getElementById('site-url').innerText = window.location.href.split(/[?#]/)[0];
 
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -264,8 +133,7 @@
                     photoPreview.src = event.target.result;
                     reportContainer.style.display = 'block';
                     shareArea.style.display = 'block';
-                    statusMsg.innerText = "";
-                    document.getElementById('current-date').innerText = "DATE: " + new Date().toLocaleDateString().toUpperCase();
+                    document.getElementById('current-date').innerText = "FILED: " + new Date().toLocaleDateString().toUpperCase();
                     generateMoods();
                     reportContainer.scrollIntoView({ behavior: 'smooth' });
                 }
@@ -273,11 +141,15 @@
             }
         });
 
+        function toggleMode() {
+            const isSquare = reportContainer.classList.toggle('square-mode');
+            document.getElementById('modeBtn').innerText = isSquare ? "Switch to Full Document" : "Switch to Instagram Square";
+        }
+
         function generateMoods() {
             const moods = ["Happy", "Mad", "Tired", "Delusional", "Anguished", "Sad", "Nervous", "Bored", "Anxious", "Distrustful"];
             const container = document.getElementById('mood-list');
             container.innerHTML = ''; 
-
             moods.forEach(mood => {
                 const score = Math.floor(Math.random() * 11);
                 container.innerHTML += `
@@ -288,43 +160,22 @@
             });
         }
 
-        async function sendToDiscord(canvas) {
-            statusMsg.innerText = "Filing report with Bureau...";
-            
-            canvas.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('file', blob, 'mood-report.png');
-                formData.append('payload_json', JSON.stringify({
-                    content: "🚨 **New Mood Analysis Received** 🚨",
-                    username: "S.M.A.B. System"
-                }));
-
-                try {
-                    const response = await fetch(DISCORD_WEBHOOK_URL, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (response.ok) {
-                        statusMsg.innerText = "Report successfully filed to Discord!";
-                    }
-                } catch (error) {
-                    console.error("Discord Error:", error);
-                    statusMsg.innerText = "Saved locally (Discord connection failed).";
-                }
-            }, 'image/png');
-        }
-
         function shareReport() {
-            html2canvas(document.querySelector("#report-container")).then(canvas => {
-                // 1. Download for User
+            statusMsg.innerText = "Processing High-Res Image...";
+            html2canvas(document.querySelector("#report-container"), { scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'spouse-mood-report.png';
+                link.download = 'mood-report.png';
                 link.href = canvas.toDataURL();
                 link.click();
-
-                // 2. Send to Discord
+                statusMsg.innerText = "Saved! Ready for Social Media.";
+                
                 if (DISCORD_WEBHOOK_URL !== 'PASTE_YOUR_WEBHOOK_URL_HERE') {
-                    sendToDiscord(canvas);
+                    canvas.toBlob(blob => {
+                        const fd = new FormData();
+                        fd.append('file', blob, 'report.png');
+                        fd.append('payload_json', JSON.stringify({ content: "New report shared to social media!" }));
+                        fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: fd });
+                    });
                 }
             });
         }
