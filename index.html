@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --main-red: #d63031; --dark-bg: #1a1a1a; --btn-green: #2ecc71; }
+        :root { --main-red: #d63031; --dark-bg: #1a1a1a; --btn-green: #2ecc71; --btn-blue: #0984e3; }
         body { font-family: 'Courier New', Courier, monospace; background-color: #f0f0f0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
 
         .main-header { text-align: center; margin: 20px 0; }
@@ -20,11 +20,13 @@
         }
 
         input[type="file"] { margin: 15px 0; width: 100%; }
-        button { color: white; border: none; padding: 15px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; margin-top: 10px; }
+        button { color: white; border: none; padding: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; margin-top: 10px; }
+        
         .btn-red { background-color: var(--main-red); }
         .btn-green { background-color: var(--btn-green); }
+        .btn-blue { background-color: var(--btn-blue); }
         
-        #status-msg { margin-top: 10px; font-size: 0.8rem; font-weight: bold; color: #27ae60; }
+        #status-msg { margin-top: 10px; font-size: 0.8rem; font-weight: bold; color: #27ae60; min-height: 1.2em; }
 
         /* --- THE REPORT CARD --- */
         #report-container {
@@ -33,7 +35,6 @@
             transition: all 0.3s ease; box-sizing: border-box;
         }
 
-        /* Square Mode for Instagram */
         #report-container.square-mode { width: 600px; height: 600px; padding: 20px; display: flex; flex-direction: column; }
         #report-container.square-mode .report-body { flex: 1; overflow: hidden; }
 
@@ -70,13 +71,14 @@
     </div>
 
     <div class="controls">
-        <p>Step 1: Upload Evidence</p>
+        <p>1. Upload Face Data</p>
         <input type="file" id="imageUpload" accept="image/*">
         
         <div id="share-area" style="display:none; margin-top: 15px;">
-            <p>Step 2: Social Options</p>
+            <p>2. Share Result or Link</p>
             <button onclick="toggleMode()" class="btn-red" id="modeBtn">Switch to Instagram Square</button>
-            <button onclick="handleShare()" class="btn-green">Share via WhatsApp / Social</button>
+            <button onclick="handleShare()" class="btn-green">Share Result (WhatsApp/Photo)</button>
+            <button onclick="copyAppLink()" class="btn-blue">Copy Link to Send to Friends</button>
             <div id="status-msg"></div>
         </div>
     </div>
@@ -122,7 +124,8 @@
         const photoPreview = document.getElementById('photo-preview');
         const statusMsg = document.getElementById('status-msg');
         
-        document.getElementById('site-url').innerText = window.location.href.split(/[?#]/)[0];
+        const currentUrl = window.location.href.split(/[?#]/)[0];
+        document.getElementById('site-url').innerText = currentUrl;
 
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -132,6 +135,7 @@
                     photoPreview.src = event.target.result;
                     reportContainer.style.display = 'block';
                     shareArea.style.display = 'block';
+                    statusMsg.innerText = "";
                     document.getElementById('current-date').innerText = "FILED: " + new Date().toLocaleDateString().toUpperCase();
                     generateMoods();
                     reportContainer.scrollIntoView({ behavior: 'smooth' });
@@ -159,6 +163,13 @@
             });
         }
 
+        function copyAppLink() {
+            navigator.clipboard.writeText(currentUrl).then(() => {
+                statusMsg.innerText = "App link copied! Send it to your friends.";
+                setTimeout(() => { statusMsg.innerText = ""; }, 3000);
+            });
+        }
+
         async function handleShare() {
             statusMsg.innerText = "Generating Shareable File...";
             const canvas = await html2canvas(reportContainer, { scale: 2 });
@@ -166,23 +177,20 @@
             const blob = await (await fetch(dataUrl)).blob();
             const file = new File([blob], "mood-report.png", { type: "image/png" });
 
-            // 1. Try Native Share (WhatsApp, Instagram, etc.)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
                         files: [file],
                         title: 'Spouse Mood Report',
-                        text: 'Bureau analysis complete. Results attached.'
+                        text: `Check out this Mood Report! Try it yourself here: ${currentUrl}`
                     });
                 } catch (err) {
                     downloadFallback(dataUrl);
                 }
             } else {
-                // 2. Fallback to direct download for desktop
                 downloadFallback(dataUrl);
             }
 
-            // 3. Optional: Still send to your Discord for tracking
             if (DISCORD_WEBHOOK_URL !== 'PASTE_YOUR_WEBHOOK_URL_HERE') {
                 const fd = new FormData();
                 fd.append('file', blob, 'report.png');
@@ -196,7 +204,7 @@
             link.download = 'mood-report.png';
             link.href = url;
             link.click();
-            statusMsg.innerText = "Saved to Photo Gallery!";
+            statusMsg.innerText = "Saved to Gallery!";
         }
     </script>
 </body>
