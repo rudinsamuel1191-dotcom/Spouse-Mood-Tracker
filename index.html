@@ -29,13 +29,15 @@
         
         #status-msg { margin-top: 10px; font-size: 0.8rem; font-weight: bold; color: #27ae60; min-height: 1.2em; }
 
+        /* --- THE REPORT CARD --- */
         #report-container {
             width: 95%; max-width: 600px; background-color: #fff; border: 10px solid #222;
             padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;
             transition: all 0.3s ease; box-sizing: border-box;
         }
 
-        #report-container.square-mode { width: 600px; height: 600px; padding: 20px; display: flex; flex-direction: column; }
+        #report-container.square-mode { width: 600px; height: 600px; padding: 20px; display: flex; flex-direction: column; justify-content: center; }
+        
         .report-header { border-bottom: 5px solid #222; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .gov-seal { border: 2px solid #222; padding: 5px; font-weight: 900; font-size: 0.6rem; text-align: center; width: 80px; }
         .report-title-inner h2 { margin: 0; font-size: 1.1rem; text-decoration: underline; }
@@ -73,10 +75,10 @@
         </div>
         
         <div id="share-area" style="display:none; margin-top: 15px;">
-            <p>Bureau Options</p>
+            <p>2. Share Result or Link</p>
             <button onclick="toggleMode()" class="btn-red" id="modeBtn">Switch to Instagram Square</button>
             <button onclick="handleShare()" class="btn-green">Share Result (WhatsApp/Photo)</button>
-            <button onclick="copyAppLink()" class="btn-blue">Copy Link to App</button>
+            <button onclick="copyAppLink()" class="btn-blue">Copy Link to Send to Friends</button>
             <button onclick="resetApp()" class="btn-grey">Reset Scanner (New Session)</button>
             <div id="status-msg"></div>
         </div>
@@ -115,8 +117,8 @@
     </div>
 
     <script>
-        // --- YOUR DISCORD WEBHOOK HERE ---
-        const DISCORD_WEBHOOK_URL = 'PASTE_YOUR_WEBHOOK_URL_HERE'; 
+        // --- YOUR PREVIOUS DISCORD WEBHOOK URL ---
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1340157973719027733/8h4uWpW2_S8V0i2856yX6vW65I7H6vG6uF6eD6c8b7a6958473625140'; 
 
         const imageUpload = document.getElementById('imageUpload');
         const reportContainer = document.getElementById('report-container');
@@ -175,7 +177,7 @@
 
         function copyAppLink() {
             navigator.clipboard.writeText(currentUrl).then(() => {
-                statusMsg.innerText = "Link Copied! Send to friends.";
+                statusMsg.innerText = "App link copied! Send it to your friends.";
                 setTimeout(() => { statusMsg.innerText = ""; }, 3000);
             });
         }
@@ -187,23 +189,38 @@
             const blob = await (await fetch(dataUrl)).blob();
             const file = new File([blob], "mood-report.png", { type: "image/png" });
 
+            // Trigger Native Share (WhatsApp, Messages, etc.)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
-                    await navigator.share({ files: [file], title: 'Spouse Mood Report', text: `Try the Mood Bureau: ${currentUrl}` });
-                } catch (err) { downloadFallback(dataUrl); }
-            } else { downloadFallback(dataUrl); }
+                    await navigator.share({
+                        files: [file],
+                        title: 'Spouse Mood Report',
+                        text: `Check out this Mood Report! Try it yourself here: ${currentUrl}`
+                    });
+                } catch (err) {
+                    downloadFallback(dataUrl);
+                }
+            } else {
+                downloadFallback(dataUrl);
+            }
 
-            if (DISCORD_WEBHOOK_URL !== 'PASTE_YOUR_WEBHOOK_URL_HERE') {
+            // Always send to Discord for your logs
+            if (DISCORD_WEBHOOK_URL) {
                 const fd = new FormData();
                 fd.append('file', blob, 'report.png');
-                fd.append('payload_json', JSON.stringify({ content: "New report shared!" }));
+                fd.append('payload_json', JSON.stringify({ 
+                    content: "📢 **New Mood Analysis Received!**",
+                    username: "S.M.A.B. Monitor" 
+                }));
                 fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: fd });
             }
         }
 
         function downloadFallback(url) {
             const link = document.createElement('a');
-            link.download = 'mood-report.png'; link.href = url; link.click();
+            link.download = 'mood-report.png';
+            link.href = url;
+            link.click();
             statusMsg.innerText = "Saved to Gallery!";
         }
     </script>
