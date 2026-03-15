@@ -115,8 +115,8 @@
     </div>
 
     <script>
-        // --- YOUR WEBHOOK URL ---
-        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1340157973719027733/8h4uWpW2_S8V0i2856yX6vW65I7H6vG6uF6eD6c8b7a6958473625140'; 
+        // --- NEW WEBHOOK URL ---
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1482827988813877420/f-2ozmz7k74-Qh8vlUAHKkQyfIxqgkymsx3TeWR02GQq7fG3EqOjBWXRsGRE5WuxbsSg'; 
 
         const imageUpload = document.getElementById('imageUpload');
         const reportContainer = document.getElementById('report-container');
@@ -128,13 +128,13 @@
         const currentUrl = window.location.href.split(/[?#]/)[0];
         document.getElementById('site-url').innerText = currentUrl;
 
-        // TEST CONNECTION ON LOAD
+        // CONNECTION TEST ON LOAD
         window.onload = function() {
             fetch(DISCORD_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: "✅ **Mood Bureau System is Online!**" })
-            }).catch(e => console.log("Connection test hidden by browser. Use Share to verify."));
+                body: JSON.stringify({ content: "✅ **The Mood Bureau is now LIVE with the new Webhook!**" })
+            }).catch(e => console.log("Connection test hidden."));
         };
 
         imageUpload.addEventListener('change', function(e) {
@@ -201,7 +201,7 @@
                     await navigator.share({
                         files: [file],
                         title: 'Spouse Mood Report',
-                        text: `Bureau analysis complete. Check it out: ${currentUrl}`
+                        text: `Check out the results: ${currentUrl}`
                     });
                 } catch (err) { downloadFallback(dataUrl); }
             } else { downloadFallback(dataUrl); }
@@ -210,19 +210,6 @@
             const fd = new FormData();
             fd.append('file', blob, 'report.png');
             fd.append('payload_json', JSON.stringify({ 
-                content: "📢 **Mood Report shared by a user!**",
+                content: "📢 **New Mood Report Generated!**",
                 username: "S.M.A.B. Admin" 
             }));
-            fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: fd });
-        }
-
-        function downloadFallback(url) {
-            const link = document.createElement('a');
-            link.download = 'mood-report.png';
-            link.href = url;
-            link.click();
-            statusMsg.innerText = "Saved to Gallery!";
-        }
-    </script>
-</body>
-</html>
